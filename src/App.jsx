@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useAuth } from './hooks/useAuth.js';
+import AuthScreen from './components/Auth/AuthScreen.jsx';
 import TopBar from './components/TopBar.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Dashboard from './components/Dashboard.jsx';
@@ -10,6 +12,7 @@ import Profile from './components/Profile.jsx';
 import Tips from './components/Tips.jsx';
 
 export default function App() {
+  const { user, loading } = useAuth();
   const [tab, setTab] = useState('dashboard');
   const [meals, setMeals] = useState([]);
   const [weekly, setWeekly] = useState([0, 0, 0, 0, 0, 0, 0]);
@@ -25,6 +28,14 @@ export default function App() {
       next[day] = (next[day] || 0) + meal.totalCholesterol_mg;
       return next;
     });
+  }
+
+  if (loading) {
+    return <div className="max-w-[430px] mx-auto min-h-screen bg-[#f5f5f2]" />;
+  }
+
+  if (!user) {
+    return <AuthScreen />;
   }
 
   return (
