@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Icon } from '../lib/icons.jsx';
 import { Button, Field, inputCls, AiLoading, AiError, LevelBadge } from '../lib/ui.jsx';
-import { askAI } from '../lib/anthropic.js';
+import { lookup } from '../lib/api.js';
 
-export default function Lookup({ conditions, limit }) {
+export default function Lookup() {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,10 +16,7 @@ export default function Lookup({ conditions, limit }) {
     setError('');
     setResult(null);
     try {
-      const d = await askAI(
-        `Look up "${q}" for cholesterol info. JSON: {"name":"string","level":"high|medium|low","cholesterol_mg":number,"serving":"string","ldl_impact":"string","hdl_impact":"string","daily_recommendation":"string","nutritional_notes":"string","alternatives":["string"]}`,
-        { conditions, limit }
-      );
+      const d = await lookup(q);
       setResult(d);
     } catch {
       setError('Not found. Try a different term.');

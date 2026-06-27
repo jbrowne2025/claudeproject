@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { Icon } from '../lib/icons.jsx';
 import { Button, Field, inputCls, AiLoading, AiError, LevelBadge, RiskPill } from '../lib/ui.jsx';
-import { askAI, askAIVision } from '../lib/anthropic.js';
+import { analysePhoto, analyseIngredient } from '../lib/api.js';
 import { todayStr, nowStr } from '../lib/date.js';
 
-export default function LogMeal({ conditions, limit, onLogMeal, onDone }) {
+export default function LogMeal({ onLogMeal, onDone }) {
   const [mode, setMode] = useState('photo');
   const [imgSrc, setImgSrc] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [photoResult, setPhotoResult] = useState(null);
   const [photoError, setPhotoError] = useState('');
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -23,17 +24,13 @@ export default function LogMeal({ conditions, limit, onLogMeal, onDone }) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       setImgSrc(ev.target.result);
+      setPhotoFile(file);
       setPhotoResult(null);
       setPhotoError('');
       setPhotoLoading(true);
       try {
         const b64 = ev.target.result.split(',')[1];
-        const d = await askAIVision(
-          b64,
-          file.type || 'image/jpeg',
-          'Identify all ingredients in this meal. Respond ONLY with JSON: {"mealName":"string","ingredients":[{"name":"string","level":"high|medium|low","cholesterol_mg":number,"serving":"string","ldl_impact":"string","hdl_impact":"string","substitute":"string|null"}],"totalCholesterol_mg":number,"riskScore":"high|medium|low","riskExplanation":"string"}',
-          { conditions, limit }
-        );
+        const d = await analysePhoto(b64, file.type || 'image/jpeg');
         setPhotoResult(d);
       } catch {
         setPhotoError('Could not analyse image. Try manual entry.');
@@ -44,9 +41,10 @@ export default function LogMeal({ conditions, limit, onLogMeal, onDone }) {
     reader.readAsDataURL(file);
   }
 
-  function savePhotoResult() {
-    onLogMeal({ ...photoResult, time: nowStr(), date: todayStr() });
+  async function savePhotoResult() {
+    await onLogMeal({ ...photoResult, time: nowStr(), date: todayStr() }, photoFile);
     setImgSrc(null);
+    setPhotoFile(null);
     setPhotoResult(null);
     if (fileRef.current) fileRef.current.value = '';
     onDone();
@@ -57,10 +55,7 @@ export default function LogMeal({ conditions, limit, onLogMeal, onDone }) {
     if (!name) return;
     setIngLoading(true);
     try {
-      const d = await askAI(
-        `Analyse ingredient for cholesterol: "${name}". JSON: {"name":"string","level":"high|medium|low","cholesterol_mg":number,"serving":"string","ldl_impact":"string","hdl_impact":"string","substitute":"string|null"}`,
-        { conditions, limit }
-      );
+      const d = await analyseIngredient(name);
       setManualIngs((prev) => [...prev, d]);
       setIngInput('');
     } catch {
@@ -80,14 +75,14 @@ export default function LogMeal({ conditions, limit, onLogMeal, onDone }) {
     setIngInput('');
   }
 
-  function logManual() {
+  async function logManual() {
     if (!manualIngs.length) {
       alert('Add at least one ingredient.');
       return;
     }
     const total = manualIngs.reduce((s, i) => s + i.cholesterol_mg, 0);
     const h = manualIngs.filter((i) => i.level === 'high').length;
-    onLogMeal({
+    await onLogMeal({
       mealName: mealName || 'Manual meal',
       ingredients: manualIngs,
       totalCholesterol_mg: total,

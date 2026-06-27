@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Icon } from '../lib/icons.jsx';
 import { Button, Card, Field, inputCls } from '../lib/ui.jsx';
-import { askAI } from '../lib/anthropic.js';
+import { recommendTarget } from '../lib/api.js';
 
 const CONDITIONS = ['High cholesterol', 'Heart disease', 'Diabetes', 'Hypertension'];
 
-export default function Profile({ profile, setProfile, limit, setLimit, conditions, setConditions }) {
+export default function Profile({ profile, limit, conditions, onSave }) {
   const [form, setForm] = useState({
     name: profile.name || '',
     age: profile.age || '',
@@ -16,37 +16,46 @@ export default function Profile({ profile, setProfile, limit, setLimit, conditio
     hdl: profile.hdl || '',
     testdate: profile.testdate || '',
   });
+  const [localConditions, setLocalConditions] = useState(conditions);
   const [target, setTarget] = useState(limit);
   const [msg, setMsg] = useState('');
   const [calculating, setCalculating] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function update(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
   function toggleCondition(c) {
-    setConditions((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+    setLocalConditions((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   }
 
-  function save() {
-    setProfile(form);
-    if (target) setLimit(parseInt(target));
-    setMsg('Profile saved.');
-    setTimeout(() => setMsg(''), 2000);
+  async function save() {
+    setSaving(true);
+    setMsg('Saving…');
+    try {
+      await onSave(form, localConditions, target ? parseInt(target) : limit);
+      setMsg('Profile saved.');
+    } catch (err) {
+      setMsg(`Could not save: ${err.message}`);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setMsg(''), 2500);
+    }
   }
 
   async function autoTarget() {
     setCalculating(true);
     setMsg('Calculating…');
     try {
-      const r = await askAI(
-        `Recommend daily dietary cholesterol limit (mg) for: age ${form.age}, sex ${form.sex}, conditions: ${
-          conditions.length ? conditions.join(', ') : 'none'
-        }, LDL: ${form.ldl || 'unknown'}, HDL: ${form.hdl || 'unknown'}. JSON: {"limit_mg":number,"reason":"string"}`,
-        { conditions, limit }
-      );
+      const r = await recommendTarget({
+        age: form.age,
+        sex: form.sex,
+        conditions: localConditions,
+        ldl: form.ldl,
+        hdl: form.hdl,
+      });
       setTarget(r.limit_mg);
-      setLimit(r.limit_mg);
       setMsg(`Recommended: ${r.limit_mg}mg/day — ${r.reason}`);
     } catch {
       setMsg('Could not calculate. Set manually.');
@@ -83,7 +92,7 @@ export default function Profile({ profile, setProfile, limit, setLimit, conditio
           <div className="flex flex-wrap gap-2 mt-1.5">
             {CONDITIONS.map((c) => (
               <label key={c} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-black/20 text-[13px] cursor-pointer bg-white">
-                <input type="checkbox" checked={conditions.includes(c)} onChange={() => toggleCondition(c)} className="accent-emerald-600" /> {c}
+                <input type="checkbox" checked={localConditions.includes(c)} onChange={() => toggleCondition(c)} className="accent-emerald-600" /> {c}
               </label>
             ))}
           </div>
@@ -122,7 +131,7 @@ export default function Profile({ profile, setProfile, limit, setLimit, conditio
       </Card>
 
       <div className="mb-3">
-        <Button variant="primary" full onClick={save}>
+        <Button variant="primary" full onClick={save} disabled={saving}>
           <Icon name="save" size={16} /> Save profile
         </Button>
       </div>

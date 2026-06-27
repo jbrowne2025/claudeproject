@@ -72,3 +72,14 @@ CREATE POLICY "Users own meal ingredients" ON meal_ingredients
 -- Cache is readable by all authenticated users, writable by service role only
 CREATE POLICY "Cache readable by all" ON ingredient_cache
   FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Storage bucket for meal photos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('meal-photos', 'meal-photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Users upload own meal photos" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'meal-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Meal photos are publicly readable" ON storage.objects
+  FOR SELECT USING (bucket_id = 'meal-photos');
