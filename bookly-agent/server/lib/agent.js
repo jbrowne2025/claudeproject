@@ -2,10 +2,17 @@ import Anthropic from '@anthropic-ai/sdk';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
 import { toolDefinitions, executeTool } from './tools.js';
 
-const MODEL = 'claude-opus-4-8';
+const MODEL = 'claude-sonnet-5';
 const MAX_TOOL_ITERATIONS = 6;
 
 const client = new Anthropic();
+
+// system + tools are identical on every turn - caching the last system block
+// caches both (render order is tools -> system -> messages), so repeat turns
+// only pay full price for the new user/tool-result content.
+const CACHED_SYSTEM = [
+  { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+];
 
 // history: array of Anthropic message params ({role, content}), mutated in place per session.
 export async function runTurn(history, userText) {
@@ -17,7 +24,7 @@ export async function runTurn(history, userText) {
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: CACHED_SYSTEM,
       tools: toolDefinitions,
       messages: history,
     });
