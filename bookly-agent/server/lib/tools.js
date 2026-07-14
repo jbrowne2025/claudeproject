@@ -33,7 +33,7 @@ export const toolDefinitions = [
       properties: {
         email: { type: 'string', description: "Customer's account email address, used to verify order ownership." },
         order_id: { type: 'string', description: 'Order ID the item belongs to.' },
-        item_id: { type: 'string', description: 'ID of the item within the order to return.' },
+        item_id: { type: 'string', description: 'The item to return - its internal item ID if known (e.g. "ITM-1"), or otherwise the customer\'s own description of the item (e.g. "the Hobbit"); the tool matches on either.' },
         reason: { type: 'string', description: "Customer's stated reason for the return." },
         refund_method: {
           type: 'string',
@@ -115,13 +115,25 @@ export async function executeTool(name, input) {
       if (!order) {
         return { error: `Order ${input.order_id} was not found on the account for ${input.email}.` };
       }
-      const item = order.items.find((i) => i.itemId === input.item_id);
-      if (!item) {
-        return { error: `Item ${input.item_id} was not found on order ${input.order_id}.` };
-      }
+
+      // Check the order-level return window before resolving the item - a
+      // customer describing the item by name/typo shouldn't get a confusing
+      // "item not found" error when the real answer is "outside the window"
+      // regardless of which item they mean.
       const eligibility = checkReturnEligibility(order);
       if (!eligibility.eligible) {
         return { eligible: false, reason: eligibility.reason, suggestions: eligibility.suggestions };
+      }
+
+      // Match by item ID first, falling back to a title match - the model
+      // often only has the customer's spoken description ("the Hobbit"), not
+      // the internal item ID, to pass through here.
+      const normalizedItemInput = input.item_id.trim().toLowerCase();
+      const item =
+        order.items.find((i) => i.itemId.toLowerCase() === normalizedItemInput) ||
+        order.items.find((i) => i.title.toLowerCase().includes(normalizedItemInput));
+      if (!item) {
+        return { error: `Item "${input.item_id}" was not found on order ${input.order_id}. Items on this order: ${order.items.map((i) => `${i.title} (${i.itemId})`).join(', ') || 'none'}.` };
       }
 
       if (input.refund_method === 'original_payment') {
