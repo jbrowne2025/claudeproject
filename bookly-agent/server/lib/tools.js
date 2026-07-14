@@ -16,7 +16,7 @@ export const toolDefinitions = [
   {
     name: 'lookup_order',
     description:
-      "Look up a customer's order(s) by account email against Bookly's live orders database, optionally narrowed to a single order number. Always confirm the customer's email before calling this - it acts as the identity check. The tool verifies the email has orders on file first, then (if given) checks the order number against that email's orders - order status is never shared until both checks pass. If order_id is omitted, returns all orders on the account. Only returns order number, status, order date, and amount - no tracking number or carrier is available from this source, so never state those unless the customer already gave them to you.",
+      "Look up a customer's order(s) by account email against Bookly's live orders database, optionally narrowed to a single order number. Always confirm the customer's email before calling this - it acts as the identity check. The tool verifies the email has orders on file first, then (if given) checks the order number against that email's orders - order status is never shared until both checks pass. If order_id is omitted, returns all orders on the account (order number, status, order date, amount) so the customer can identify which one they mean. Once a specific order_id is confirmed (both email and order number validated), the tool returns status only - no amount, order date, tracking number, or carrier - so never state those for a confirmed single order even if you saw them earlier in the list.",
     input_schema: {
       type: 'object',
       properties: {
@@ -29,7 +29,7 @@ export const toolDefinitions = [
   {
     name: 'initiate_return',
     description:
-      'Start a return/refund for a specific item on a specific order. Only call this after the customer has confirmed the order ID, which item they want to return, and their reason. This tool enforces Bookly return policy in code: (1) the order must be delivered and within the 30-day return window - returns eligible:false with a reason otherwise; (2) if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; (3) refunds of $1000 or more are never auto-approved - the tool returns requiresReview:true and creates a pending case for a human specialist instead of an instant refund, even when eligible and confirmed.',
+      'Start a return/refund for a specific item on a specific order. Only call this after the customer has confirmed the order ID, which item they want to return, and their reason. This tool enforces Bookly return policy in code: (1) the order must be delivered and within the 30-day return window - returns eligible:false with a reason otherwise, and no exceptions are made; when the window has passed, the response includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead; (2) if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; (3) refunds of $1000 or more are never auto-approved - the tool returns requiresReview:true and creates a pending case for a human specialist instead of an instant refund, even when eligible and confirmed.',
     input_schema: {
       type: 'object',
       properties: {
@@ -90,7 +90,10 @@ export async function executeTool(name, input) {
           if (!order) {
             return { error: `Order ${input.order_id} was not found on the account for ${input.email}.` };
           }
-          return { order };
+          // Once both email and order number are confirmed, only status is
+          // shared - amount and order date are withheld even from the
+          // verified account holder.
+          return { order: { orderId: order.orderId, status: order.status } };
         }
 
         return { orders };
@@ -114,7 +117,7 @@ export async function executeTool(name, input) {
       }
       const eligibility = checkReturnEligibility(order);
       if (!eligibility.eligible) {
-        return { eligible: false, reason: eligibility.reason };
+        return { eligible: false, reason: eligibility.reason, suggestions: eligibility.suggestions };
       }
 
       if (input.refund_method === 'original_payment') {

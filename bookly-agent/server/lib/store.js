@@ -83,6 +83,10 @@ export function checkReturnEligibility(order) {
     return {
       eligible: false,
       reason: `Order ${order.orderId} was delivered on ${order.deliveredOn}, which is ${elapsed} days ago. That's past our ${RETURN_WINDOW_DAYS}-day return window, so it's no longer eligible for a return.`,
+      suggestions: [
+        'Resell it on an online marketplace (e.g. eBay, Facebook Marketplace, a used-book site like PangoBooks or ThriftBooks trade-in)',
+        'Donate it to a local library, school, or literacy charity - some offer a tax-deduction receipt',
+      ],
     };
   }
   return { eligible: true, reason: null, daysRemaining: RETURN_WINDOW_DAYS - elapsed };
