@@ -1,6 +1,4 @@
 import {
-  findCustomerByEmail,
-  findOrder,
   checkReturnEligibility,
   refundRequiresHumanReview,
   createReturn,
@@ -103,12 +101,18 @@ export async function executeTool(name, input) {
     }
 
     case 'initiate_return': {
-      const customer = findCustomerByEmail(input.email);
-      if (!customer) {
+      let orders;
+      try {
+        orders = await fetchSupabaseOrdersForEmail(input.email);
+      } catch (err) {
+        return { error: err.message };
+      }
+      if (orders.length === 0) {
         return { error: `No Bookly account found for ${input.email}.` };
       }
-      const order = findOrder(input.order_id);
-      if (!order || order.customerEmail.toLowerCase() !== input.email.toLowerCase()) {
+      const normalizedOrderId = input.order_id.trim().toLowerCase();
+      const order = orders.find((o) => o.orderId.toLowerCase() === normalizedOrderId);
+      if (!order) {
         return { error: `Order ${input.order_id} was not found on the account for ${input.email}.` };
       }
       const item = order.items.find((i) => i.itemId === input.item_id);

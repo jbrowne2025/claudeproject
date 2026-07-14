@@ -10,8 +10,6 @@ function load(file) {
   return JSON.parse(readFileSync(path.join(dataDir, file), 'utf-8'));
 }
 
-const customers = load('customers.json');
-const orders = load('orders.json');
 const policies = load('policies.json');
 
 // In-memory mutable store for returns created during a demo session.
@@ -22,35 +20,25 @@ let returnSeq = 1;
 const RETURN_WINDOW_DAYS = 30;
 const HIGH_VALUE_REVIEW_THRESHOLD = 1000;
 
-export function findCustomerByEmail(email) {
-  if (!email) return null;
-  const normalized = email.trim().toLowerCase();
-  return customers.find((c) => c.email.toLowerCase() === normalized) || null;
-}
-
-export function findOrder(orderId) {
-  if (!orderId) return null;
-  const normalized = orderId.trim().toUpperCase();
-  return orders.find((o) => o.orderId.toUpperCase() === normalized) || null;
-}
-
-export function ordersForEmail(email) {
-  const customer = findCustomerByEmail(email);
-  if (!customer) return [];
-  return customer.orderIds.map(findOrder).filter(Boolean);
-}
-
-// live order-status lookups, sourced from the customer's real Supabase 'orders'
-// table. Deliberately kept separate from the mock findOrder/ordersForEmail
-// above: this table only carries order_number/status/amount/date - it has no
-// item lines, delivery date, or payment method, so it can't drive the
-// returns/refund flow (which still reads the local mock store).
+// Single source of truth for order data: the Supabase `orders` table. Both
+// lookup_order and initiate_return read from here - lookup_order narrows the
+// result to status-only once a specific order is confirmed (see tools.js),
+// while initiate_return uses the full row (items, delivered date, payment)
+// that only it needs.
 function mapSupabaseOrder(row) {
   return {
     orderId: row.order_number,
     status: (row.order_status || '').toLowerCase(),
     orderDate: row.order_date_time ? String(row.order_date_time).slice(0, 10) : null,
     amount: row.order_amount,
+    deliveredOn: row.delivered_on,
+    paymentMethod: row.payment_last4 ? { last4: row.payment_last4 } : null,
+    items: (row.items || []).map((i) => ({
+      itemId: i.item_id,
+      title: i.title,
+      qty: i.qty,
+      price: i.price,
+    })),
   };
 }
 
