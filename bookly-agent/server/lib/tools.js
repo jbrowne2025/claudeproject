@@ -27,18 +27,18 @@ export const toolDefinitions = [
   {
     name: 'initiate_return',
     description:
-      'Start a return/refund for a specific item on a specific order. Only call this after the customer has confirmed the order ID, which item they want to return, and their reason. This tool enforces Bookly return policy in code: (1) the order must be delivered and within the 30-day return window - returns eligible:false with a reason otherwise, and no exceptions are made; when the window has passed, the response includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead; (2) if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; (3) refunds of $1000 or more are never auto-approved - the tool returns requiresReview:true and creates a pending case for a human specialist instead of an instant refund, even when eligible and confirmed.',
+      'Check return eligibility and, once confirmed eligible, process a return/refund. Call this in two phases: (1) as soon as the customer names the order, call it with just email and order_id to check eligibility - do NOT ask which item, the reason, or the refund method yet. The order must be delivered and within the 30-day return window - if not, this call returns eligible:false with a reason and no exceptions are made; the response also includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead of asking for any return details. (2) Only once this first call returns eligible:true, ask the customer which item, their reason, and their refund method, then call initiate_return again with item_id/reason/refund_method included to actually process it. On this second call: if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; refunds of $1000 or more are never auto-approved - the tool returns requiresReview:true and creates a pending case for a human specialist instead of an instant refund, even when eligible and confirmed.',
     input_schema: {
       type: 'object',
       properties: {
         email: { type: 'string', description: "Customer's account email address, used to verify order ownership." },
         order_id: { type: 'string', description: 'Order ID the item belongs to.' },
-        item_id: { type: 'string', description: 'The item to return - its internal item ID if known (e.g. "ITM-1"), or otherwise the customer\'s own description of the item (e.g. "the Hobbit"); the tool matches on either.' },
-        reason: { type: 'string', description: "Customer's stated reason for the return." },
+        item_id: { type: 'string', description: 'Omit for the initial eligibility check. Once eligible, the item to return - its internal item ID if known (e.g. "ITM-1"), or otherwise the customer\'s own description of the item (e.g. "the Hobbit"); the tool matches on either.' },
+        reason: { type: 'string', description: "Omit for the initial eligibility check. Once eligible, the customer's stated reason for the return." },
         refund_method: {
           type: 'string',
           enum: ['original_payment', 'store_credit'],
-          description: 'How the customer wants to be refunded.',
+          description: 'Omit for the initial eligibility check. Once eligible, how the customer wants to be refunded.',
         },
         payment_confirmation_last4: {
           type: 'string',
@@ -46,7 +46,7 @@ export const toolDefinitions = [
             'Required only when refund_method is original_payment. The last 4 digits of the card the customer explicitly confirmed the refund should return to, read back from the cardLast4Masked field on the order. Omit for store_credit.',
         },
       },
-      required: ['email', 'order_id', 'item_id', 'reason', 'refund_method'],
+      required: ['email', 'order_id'],
     },
   },
   {
@@ -123,6 +123,18 @@ export async function executeTool(name, input) {
       const eligibility = checkReturnEligibility(order);
       if (!eligibility.eligible) {
         return { eligible: false, reason: eligibility.reason, suggestions: eligibility.suggestions };
+      }
+
+      // Phase 1 (eligibility-only check): item_id/reason/refund_method are
+      // omitted until the order is confirmed eligible. Stop here and tell the
+      // model to now collect those details, rather than asking for them
+      // before eligibility was known.
+      if (!input.item_id || !input.reason || !input.refund_method) {
+        return {
+          eligible: true,
+          needsDetails: true,
+          message: 'This order is eligible for a return. Now ask the customer which item, their reason, and their refund method (original payment or store credit), then call initiate_return again with those included.',
+        };
       }
 
       // Match by item ID first, falling back to a title match - the model
