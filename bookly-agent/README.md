@@ -5,7 +5,7 @@ A prototype customer support agent for **Bookly**, a fictional online bookstore.
 Handles three intents end to end:
 
 - **Order status** — looks up live order data by account email from a Supabase `orders` table
-- **Returns/refunds** — checks eligibility (30-day return window) before ever asking for item/reason/refund method, then enforces Bookly's return policy in code: explicit confirmation of the card on file before refunding to it, and mandatory human review for every return regardless of amount — no refund is auto-approved. All sourced from the same Supabase `orders` table as order status
+- **Returns/refunds** — checks eligibility (30-day return window) before ever asking for item/reason/refund method (both required), then enforces Bookly's return policy in code: explicit confirmation of the card on file before refunding to it, an explicit final "yes" from the customer logged to a separate audit trail before any return is created, and mandatory human review for every return regardless of amount — no refund is auto-approved. All sourced from the same Supabase `orders` table as order status
 - **General policy questions** — shipping, returns, payments, password reset, cancellation — answered via a `search_policies` tool instead of the model's own memory
 
 See `../PITCH_DECK.md` (or the shared slide deck) for the architecture rationale and key tradeoffs.

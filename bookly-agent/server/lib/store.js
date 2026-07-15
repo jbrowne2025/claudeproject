@@ -17,6 +17,16 @@ const policies = load('policies.json');
 const returns = [];
 let returnSeq = 1;
 
+// Separate, append-only audit trail of customer confirmations - kept apart
+// from the returns array itself so it reads as a record of consent (what the
+// customer explicitly agreed to and when), not just a field on the return.
+const confirmationLog = [];
+let confirmationSeq = 1;
+
+export function listConfirmations() {
+  return confirmationLog;
+}
+
 const RETURN_WINDOW_DAYS = 30;
 
 // Single source of truth for order data: the Supabase `orders` table. Both
@@ -81,9 +91,12 @@ export function checkReturnEligibility(order) {
 }
 
 // Every eligible, confirmed return is routed to a human specialist - there is
-// no auto-approved instant refund at any amount.
-export function createReturn({ order, item, reason, refundMethod }) {
+// no auto-approved instant refund at any amount. Callers must have already
+// gated on an explicit customer_confirmed:true (see tools.js) before calling
+// this - createReturn assumes confirmation already happened and logs it.
+export function createReturn({ order, item, reason, refundMethod, email }) {
   const refundAmount = item.price * item.qty;
+  const confirmedAt = new Date().toISOString();
   const record = {
     returnId: `RET-${String(returnSeq++).padStart(5, '0')}`,
     orderId: order.orderId,
@@ -93,10 +106,24 @@ export function createReturn({ order, item, reason, refundMethod }) {
     refundMethod,
     refundToCardLast4: refundMethod === 'original_payment' ? order.paymentMethod?.last4 : null,
     refundAmount,
-    createdAt: new Date().toISOString(),
+    createdAt: confirmedAt,
+    customerConfirmedAt: confirmedAt,
     status: 'pending_human_review',
   };
   returns.push(record);
+
+  confirmationLog.push({
+    confirmationId: `CONF-${String(confirmationSeq++).padStart(5, '0')}`,
+    returnId: record.returnId,
+    orderId: order.orderId,
+    email,
+    itemId: item.itemId,
+    itemTitle: item.title,
+    reason,
+    refundMethod,
+    confirmedAt,
+  });
+
   return record;
 }
 

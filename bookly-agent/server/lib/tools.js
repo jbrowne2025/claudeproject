@@ -26,23 +26,28 @@ export const toolDefinitions = [
   {
     name: 'initiate_return',
     description:
-      'Check return eligibility and, once confirmed eligible, process a return/refund. Call this in two phases: (1) as soon as the customer names the order, call it with just email and order_id to check eligibility - do NOT ask which item, the reason, or the refund method yet. The order must be delivered and within the 30-day return window - if not, this call returns eligible:false with a reason and no exceptions are made; the response also includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead of asking for any return details. (2) Only once this first call returns eligible:true, ask the customer which item, their reason, and their refund method, then call initiate_return again with item_id/reason/refund_method included to actually process it. On this second call: if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; no refund is ever auto-approved regardless of amount - every eligible, confirmed return creates a pending case for a human specialist instead of an instant refund.',
+      'Check return eligibility and, once confirmed eligible, process a return/refund. Call this in phases: (1) as soon as the customer names the order, call it with just email and order_id to check eligibility - do NOT ask which item, the reason, or the refund method yet. The order must be delivered and within the 30-day return window - if not, this call returns eligible:false with a reason and no exceptions are made; the response also includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead of asking for any return details. (2) Once this first call returns eligible:true, ask the customer which item, their reason, and their refund method - item_id and reason are both required before a return can be created. (3) Call initiate_return again with item_id/reason/refund_method included. If refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing. (4) Once past that, the tool returns needsConfirmation:true with a summary - read it back to the customer verbatim, get an explicit yes, then call initiate_return one more time with the same fields plus customer_confirmed set to true. This final confirmation is written to a permanent audit log, so only set it after the customer has actually agreed - never assume it. No refund is ever auto-approved regardless of amount - every eligible, confirmed return creates a pending case for a human specialist instead of an instant refund.',
     input_schema: {
       type: 'object',
       properties: {
         email: { type: 'string', description: "Customer's account email address, used to verify order ownership." },
         order_id: { type: 'string', description: 'Order ID the item belongs to.' },
-        item_id: { type: 'string', description: 'Omit for the initial eligibility check. Once eligible, the item to return - its internal item ID if known (e.g. "ITM-1"), or otherwise the customer\'s own description of the item (e.g. "the Hobbit"); the tool matches on either.' },
-        reason: { type: 'string', description: "Omit for the initial eligibility check. Once eligible, the customer's stated reason for the return." },
+        item_id: { type: 'string', description: 'Omit for the initial eligibility check. Once eligible, required: the item to return - its internal item ID if known (e.g. "ITM-1"), or otherwise the customer\'s own description of the item (e.g. "the Hobbit"); the tool matches on either.' },
+        reason: { type: 'string', description: "Omit for the initial eligibility check. Once eligible, required: the customer's stated reason for the return." },
         refund_method: {
           type: 'string',
           enum: ['original_payment', 'store_credit'],
-          description: 'Omit for the initial eligibility check. Once eligible, how the customer wants to be refunded.',
+          description: 'Omit for the initial eligibility check. Once eligible, required: how the customer wants to be refunded.',
         },
         payment_confirmation_last4: {
           type: 'string',
           description:
             'Required only when refund_method is original_payment. The last 4 digits of the card the customer explicitly confirmed the refund should return to, read back from the cardLast4Masked field on the order. Omit for store_credit.',
+        },
+        customer_confirmed: {
+          type: 'boolean',
+          description:
+            'Omit until the tool has returned needsConfirmation:true with a summary. Set to true only after you have read that summary back to the customer and they have explicitly agreed - this is logged as the auditable record of their consent. Never set this true without an actual explicit yes from the customer.',
         },
       },
       required: ['email', 'order_id'],
@@ -164,11 +169,31 @@ export async function executeTool(name, input) {
         }
       }
 
+      // Final explicit confirmation gate, required for every return regardless
+      // of refund method - this is what gets written to the audit log, so it
+      // must come from the customer actually saying yes, not be assumed.
+      if (!input.customer_confirmed) {
+        return {
+          customerName: order.customerName,
+          eligible: true,
+          needsConfirmation: true,
+          summary: {
+            orderId: order.orderId,
+            item: item.title,
+            reason: input.reason,
+            refundMethod: input.refund_method,
+            refundAmount: item.price * item.qty,
+          },
+          message: 'Read this summary back to the customer in plain language and get an explicit yes before proceeding - do not assume agreement. Then call initiate_return again with the same fields plus customer_confirmed set to true.',
+        };
+      }
+
       const record = createReturn({
         order,
         item,
         reason: input.reason,
         refundMethod: input.refund_method,
+        email: input.email,
       });
       return { customerName: order.customerName, eligible: true, requiresReview: true, return: record };
     }
