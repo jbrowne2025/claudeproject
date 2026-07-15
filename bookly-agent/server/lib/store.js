@@ -18,7 +18,6 @@ const returns = [];
 let returnSeq = 1;
 
 const RETURN_WINDOW_DAYS = 30;
-const HIGH_VALUE_REVIEW_THRESHOLD = 1000;
 
 // Single source of truth for order data: the Supabase `orders` table. Both
 // lookup_order and initiate_return read from here - lookup_order narrows the
@@ -81,11 +80,9 @@ export function checkReturnEligibility(order) {
   return { eligible: true, reason: null, daysRemaining: RETURN_WINDOW_DAYS - elapsed };
 }
 
-export function refundRequiresHumanReview(refundAmount) {
-  return refundAmount >= HIGH_VALUE_REVIEW_THRESHOLD;
-}
-
-export function createReturn({ order, item, reason, refundMethod, requiresReview }) {
+// Every eligible, confirmed return is routed to a human specialist - there is
+// no auto-approved instant refund at any amount.
+export function createReturn({ order, item, reason, refundMethod }) {
   const refundAmount = item.price * item.qty;
   const record = {
     returnId: `RET-${String(returnSeq++).padStart(5, '0')}`,
@@ -97,11 +94,7 @@ export function createReturn({ order, item, reason, refundMethod, requiresReview
     refundToCardLast4: refundMethod === 'original_payment' ? order.paymentMethod?.last4 : null,
     refundAmount,
     createdAt: new Date().toISOString(),
-    status: requiresReview
-      ? 'pending_human_review'
-      : refundMethod === 'store_credit'
-        ? 'refunded'
-        : 'pending_item_receipt',
+    status: 'pending_human_review',
   };
   returns.push(record);
   return record;

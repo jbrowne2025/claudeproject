@@ -1,6 +1,5 @@
 import {
   checkReturnEligibility,
-  refundRequiresHumanReview,
   createReturn,
   searchPolicies,
   fetchSupabaseOrdersForEmail,
@@ -27,7 +26,7 @@ export const toolDefinitions = [
   {
     name: 'initiate_return',
     description:
-      'Check return eligibility and, once confirmed eligible, process a return/refund. Call this in two phases: (1) as soon as the customer names the order, call it with just email and order_id to check eligibility - do NOT ask which item, the reason, or the refund method yet. The order must be delivered and within the 30-day return window - if not, this call returns eligible:false with a reason and no exceptions are made; the response also includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead of asking for any return details. (2) Only once this first call returns eligible:true, ask the customer which item, their reason, and their refund method, then call initiate_return again with item_id/reason/refund_method included to actually process it. On this second call: if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; refunds of $1000 or more are never auto-approved - the tool returns requiresReview:true and creates a pending case for a human specialist instead of an instant refund, even when eligible and confirmed.',
+      'Check return eligibility and, once confirmed eligible, process a return/refund. Call this in two phases: (1) as soon as the customer names the order, call it with just email and order_id to check eligibility - do NOT ask which item, the reason, or the refund method yet. The order must be delivered and within the 30-day return window - if not, this call returns eligible:false with a reason and no exceptions are made; the response also includes a suggestions list (e.g. reselling or donating the item) to offer the customer instead of asking for any return details. (2) Only once this first call returns eligible:true, ask the customer which item, their reason, and their refund method, then call initiate_return again with item_id/reason/refund_method included to actually process it. On this second call: if refund_method is original_payment, the customer must have confirmed the last 4 digits of the card on file (see cardLast4Masked from lookup_order) - pass them as payment_confirmation_last4, or the tool returns confirmationRequired:true instead of processing; no refund is ever auto-approved regardless of amount - every eligible, confirmed return creates a pending case for a human specialist instead of an instant refund.',
     input_schema: {
       type: 'object',
       properties: {
@@ -165,16 +164,13 @@ export async function executeTool(name, input) {
         }
       }
 
-      const refundAmount = item.price * item.qty;
-      const requiresReview = refundRequiresHumanReview(refundAmount);
       const record = createReturn({
         order,
         item,
         reason: input.reason,
         refundMethod: input.refund_method,
-        requiresReview,
       });
-      return { customerName: order.customerName, eligible: true, requiresReview, return: record };
+      return { customerName: order.customerName, eligible: true, requiresReview: true, return: record };
     }
 
     case 'search_policies': {

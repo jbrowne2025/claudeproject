@@ -24,21 +24,21 @@
     "id": "returns-refund-timing",
     "topic": "returns",
     "title": "Refund Timing",
-    "text": "Once a return is initiated, refunds are issued to the original payment method within 5-7 business days after Bookly receives the returned item. Store credit refunds, when chosen, post instantly.",
+    "text": "Every return is reviewed by a support specialist before a refund is issued, regardless of amount or refund method - there is no automatic instant refund. Once approved, refunds to the original payment method are issued within 5-7 business days; approved store credit refunds post within one business day.",
     "url": "https://help.bookly.com/returns/refund-timing"
   },
   {
-    "id": "returns-high-value-review",
+    "id": "returns-human-review",
     "topic": "returns",
-    "title": "High-Value Refund Review",
-    "text": "Refunds of $1,000 or more are not processed automatically, even for an eligible, confirmed return. They are routed to a support specialist for manual review, who follows up within one business day. Smaller refunds are typically instant or processed within 5-7 business days.",
-    "url": "https://help.bookly.com/returns/high-value-refund-review"
+    "title": "Human Review for Returns",
+    "text": "All eligible, confirmed returns are routed to a support specialist for manual review before a refund is issued - this applies to every return regardless of amount, not just high-value ones. A specialist typically follows up within one business day.",
+    "url": "https://help.bookly.com/returns/human-review"
   },
   {
     "id": "returns-payment-confirmation",
     "topic": "returns",
     "title": "Refunding to a Card",
-    "text": "Before a refund is sent to your original payment method, Bookly support will confirm the last 4 digits of the card on file with you. If you'd rather skip that step, you can choose store credit instead, which posts instantly.",
+    "text": "Before a refund is sent to your original payment method, Bookly support will confirm the last 4 digits of the card on file with you. If you'd rather skip that step, you can choose store credit instead - both options still go through the same human review before the refund is issued.",
     "url": "https://help.bookly.com/returns/refunding-to-a-card"
   },
   {
