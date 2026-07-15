@@ -57,8 +57,9 @@ Both `lookup_order` and `initiate_return` read from the same table (default name
 | `delivered_on` | date | `initiate_return` (30-day return window) |
 | `payment_last4` | text | `initiate_return` (card confirmation before refunding to it) |
 | `items` | jsonb — array of `{item_id, title, qty, price}` | `initiate_return` (which item is being returned, refund amount) |
+| `customer_name` | text | both (personalization - addressing the customer by name) |
 
-`lookup_order` only ever returns order number/status/date/amount for the account-wide list, and status-only once a specific order is confirmed (see `server/lib/systemPrompt.js`) — it never reads `items`/`delivered_on`/`payment_last4`, even though they're in the same row.
+`lookup_order` only ever returns order number/status/date/amount for the account-wide list, and status-only once a specific order is confirmed (see `server/lib/systemPrompt.js`) — it never reads `items`/`delivered_on`/`payment_last4`, even though they're in the same row. `customer_name` is exempt from that restriction since it's a personalization detail, not order data.
 
 If Row Level Security is enabled on this table (Supabase's default for new tables), use a **secret key** (`sb_secret_...`, Settings → API → Secret keys), not the publishable/anon key — the publishable key will silently return zero rows instead of erroring, which would make the agent tell every customer "no orders found." The secret key is safe here because `server/lib/supabaseClient.js` only ever runs server-side and is never sent to the browser; it should never be used in client-side code. (Projects still on Supabase's legacy key system can use `SUPABASE_SERVICE_ROLE_KEY` instead — see `server/lib/supabaseClient.js` for the fallback order.)
 

@@ -39,6 +39,7 @@ function mapSupabaseOrder(row) {
       qty: i.qty,
       price: i.price,
     })),
+    customerName: row.customer_name || null,
   };
 }
 

@@ -14,7 +14,7 @@ export const toolDefinitions = [
   {
     name: 'lookup_order',
     description:
-      "Look up a customer's order(s) by account email against Bookly's live orders database, optionally narrowed to a single order number. Always confirm the customer's email before calling this - it acts as the identity check. The tool verifies the email has orders on file first, then (if given) checks the order number against that email's orders - order status is never shared until both checks pass. If order_id is omitted, returns all orders on the account (order number, status, order date, amount) so the customer can identify which one they mean. Once a specific order_id is confirmed (both email and order number validated), the tool returns status only - no amount, order date, tracking number, or carrier - so never state those for a confirmed single order even if you saw them earlier in the list.",
+      "Look up a customer's order(s) by account email against Bookly's live orders database, optionally narrowed to a single order number. Always confirm the customer's email before calling this - it acts as the identity check. The tool verifies the email has orders on file first, then (if given) checks the order number against that email's orders - order status is never shared until both checks pass. If order_id is omitted, returns all orders on the account (order number, status, order date, amount) so the customer can identify which one they mean. Once a specific order_id is confirmed (both email and order number validated), the tool returns status only - no amount, order date, tracking number, or carrier - so never state those for a confirmed single order even if you saw them earlier in the list. Every call also returns customerName (their first name on file, if any) - use it to address them by name for the rest of the conversation.",
     input_schema: {
       type: 'object',
       properties: {
@@ -90,11 +90,12 @@ export async function executeTool(name, input) {
           }
           // Once both email and order number are confirmed, only status is
           // shared - amount and order date are withheld even from the
-          // verified account holder.
-          return { order: { orderId: order.orderId, status: order.status } };
+          // verified account holder. customerName is a personalization detail,
+          // not order data, so it's exempt from that restriction.
+          return { customerName: order.customerName, order: { orderId: order.orderId, status: order.status } };
         }
 
-        return { orders };
+        return { customerName: orders[0]?.customerName, orders };
       } catch (err) {
         return { error: err.message };
       }
@@ -122,7 +123,7 @@ export async function executeTool(name, input) {
       // regardless of which item they mean.
       const eligibility = checkReturnEligibility(order);
       if (!eligibility.eligible) {
-        return { eligible: false, reason: eligibility.reason, suggestions: eligibility.suggestions };
+        return { customerName: order.customerName, eligible: false, reason: eligibility.reason, suggestions: eligibility.suggestions };
       }
 
       // Phase 1 (eligibility-only check): item_id/reason/refund_method are
@@ -131,6 +132,7 @@ export async function executeTool(name, input) {
       // before eligibility was known.
       if (!input.item_id || !input.reason || !input.refund_method) {
         return {
+          customerName: order.customerName,
           eligible: true,
           needsDetails: true,
           message: 'This order is eligible for a return. Now ask the customer which item, their reason, and their refund method (original payment or store credit), then call initiate_return again with those included.',
@@ -152,6 +154,7 @@ export async function executeTool(name, input) {
         const cardLast4 = order.paymentMethod?.last4;
         if (!cardLast4 || input.payment_confirmation_last4 !== cardLast4) {
           return {
+            customerName: order.customerName,
             eligible: true,
             confirmationRequired: true,
             cardLast4Masked: cardLast4 ? `•••• ${cardLast4}` : null,
@@ -171,7 +174,7 @@ export async function executeTool(name, input) {
         refundMethod: input.refund_method,
         requiresReview,
       });
-      return { eligible: true, requiresReview, return: record };
+      return { customerName: order.customerName, eligible: true, requiresReview, return: record };
     }
 
     case 'search_policies': {
