@@ -52,7 +52,7 @@ export const toolDefinitions = [
   {
     name: 'search_policies',
     description:
-      'Search Bookly policy documentation for answers to general questions about shipping, returns, payments, account/password reset, and order cancellation. Use this instead of answering policy questions from memory.',
+      'Search Bookly policy documentation for answers to general questions about shipping, returns, payments, account/password reset, and order cancellation. Use this instead of answering policy questions from memory. Each result includes a source url - cite it (e.g. as a markdown link on the relevant sentence) so the customer can see the answer is grounded in an actual policy document, not guessed.',
     input_schema: {
       type: 'object',
       properties: {
@@ -176,7 +176,7 @@ export async function executeTool(name, input) {
 
     case 'search_policies': {
       const results = searchPolicies(input.query, input.topic);
-      return { results: results.map((r) => ({ title: r.title, text: r.text })) };
+      return { results: results.map((r) => ({ title: r.title, text: r.text, url: r.url })) };
     }
 
     default:

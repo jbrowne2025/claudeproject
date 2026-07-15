@@ -95,6 +95,13 @@ body {
   color: #7a6f60;
 }
 
+.citation-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #8a7256;
+  text-underline-offset: 2px;
+}
+
 .tool-badges {
   display: flex;
   flex-wrap: wrap;

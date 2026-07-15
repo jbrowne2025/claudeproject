@@ -3,66 +3,77 @@
     "id": "shipping-standard",
     "topic": "shipping",
     "title": "Standard Shipping",
-    "text": "Standard shipping takes 5-7 business days and is free on orders over $35. Orders under $35 have a flat $4.99 shipping fee. Orders placed before 12pm ET ship the same business day."
+    "text": "Standard shipping takes 5-7 business days and is free on orders over $35. Orders under $35 have a flat $4.99 shipping fee. Orders placed before 12pm ET ship the same business day.",
+    "url": "https://help.bookly.com/shipping/standard-shipping"
   },
   {
     "id": "shipping-expedited",
     "topic": "shipping",
     "title": "Expedited Shipping",
-    "text": "Expedited shipping (2-3 business days) is available at checkout for $12.99. Overnight shipping is available in the continental US for $24.99 on orders placed before 2pm ET."
+    "text": "Expedited shipping (2-3 business days) is available at checkout for $12.99. Overnight shipping is available in the continental US for $24.99 on orders placed before 2pm ET.",
+    "url": "https://help.bookly.com/shipping/expedited-shipping"
   },
   {
     "id": "returns-window",
     "topic": "returns",
     "title": "Return Window",
-    "text": "Books may be returned within 30 days of delivery for a full refund, provided they are in resellable condition. Digital/e-book purchases are final sale and not eligible for return."
+    "text": "Books may be returned within 30 days of delivery for a full refund, provided they are in resellable condition. Digital/e-book purchases are final sale and not eligible for return.",
+    "url": "https://help.bookly.com/returns/return-window"
   },
   {
     "id": "returns-refund-timing",
     "topic": "returns",
     "title": "Refund Timing",
-    "text": "Once a return is initiated, refunds are issued to the original payment method within 5-7 business days after Bookly receives the returned item. Store credit refunds, when chosen, post instantly."
+    "text": "Once a return is initiated, refunds are issued to the original payment method within 5-7 business days after Bookly receives the returned item. Store credit refunds, when chosen, post instantly.",
+    "url": "https://help.bookly.com/returns/refund-timing"
   },
   {
     "id": "returns-high-value-review",
     "topic": "returns",
     "title": "High-Value Refund Review",
-    "text": "Refunds of $1,000 or more are not processed automatically, even for an eligible, confirmed return. They are routed to a support specialist for manual review, who follows up within one business day. Smaller refunds are typically instant or processed within 5-7 business days."
+    "text": "Refunds of $1,000 or more are not processed automatically, even for an eligible, confirmed return. They are routed to a support specialist for manual review, who follows up within one business day. Smaller refunds are typically instant or processed within 5-7 business days.",
+    "url": "https://help.bookly.com/returns/high-value-refund-review"
   },
   {
     "id": "returns-payment-confirmation",
     "topic": "returns",
     "title": "Refunding to a Card",
-    "text": "Before a refund is sent to your original payment method, Bookly support will confirm the last 4 digits of the card on file with you. If you'd rather skip that step, you can choose store credit instead, which posts instantly."
+    "text": "Before a refund is sent to your original payment method, Bookly support will confirm the last 4 digits of the card on file with you. If you'd rather skip that step, you can choose store credit instead, which posts instantly.",
+    "url": "https://help.bookly.com/returns/refunding-to-a-card"
   },
   {
     "id": "password-reset",
     "topic": "account",
     "title": "Password Reset",
-    "text": "To reset your password, go to bookly.com/login and click 'Forgot password'. Enter the email on your account and we'll send a reset link that expires in 30 minutes. If you don't receive it, check spam or contact support to verify your account email."
+    "text": "To reset your password, go to bookly.com/login and click 'Forgot password'. Enter the email on your account and we'll send a reset link that expires in 30 minutes. If you don't receive it, check spam or contact support to verify your account email.",
+    "url": "https://help.bookly.com/account/password-reset"
   },
   {
     "id": "account-email-change",
     "topic": "account",
     "title": "Changing Account Email",
-    "text": "You can update your account email from Account Settings > Profile. For security, changing your email requires re-verifying your password and confirming the new email address via a verification link."
+    "text": "You can update your account email from Account Settings > Profile. For security, changing your email requires re-verifying your password and confirming the new email address via a verification link.",
+    "url": "https://help.bookly.com/account/changing-account-email"
   },
   {
     "id": "payment-methods",
     "topic": "payments",
     "title": "Accepted Payment Methods",
-    "text": "Bookly accepts Visa, Mastercard, American Express, Discover, PayPal, and Bookly gift cards. We do not currently support Apple Pay or cryptocurrency."
+    "text": "Bookly accepts Visa, Mastercard, American Express, Discover, PayPal, and Bookly gift cards. We do not currently support Apple Pay or cryptocurrency.",
+    "url": "https://help.bookly.com/payments/accepted-payment-methods"
   },
   {
     "id": "order-cancellation",
     "topic": "orders",
     "title": "Cancelling an Order",
-    "text": "Orders can be cancelled for free within 1 hour of placing them, as long as they haven't entered processing. After that, the order cannot be cancelled but can be returned once delivered."
+    "text": "Orders can be cancelled for free within 1 hour of placing them, as long as they haven't entered processing. After that, the order cannot be cancelled but can be returned once delivered.",
+    "url": "https://help.bookly.com/orders/cancelling-an-order"
   },
   {
     "id": "international-shipping",
     "topic": "shipping",
     "title": "International Shipping",
-    "text": "Bookly currently ships to the US, Canada, and the UK. International orders take 10-18 business days and customs fees, where applicable, are the responsibility of the customer."
+    "text": "Bookly currently ships to the US, Canada, and the UK. International orders take 10-18 business days and customs fees, where applicable, are the responsibility of the customer.",
+    "url": "https://help.bookly.com/shipping/international-shipping"
   }
 ]
