@@ -8,12 +8,10 @@ Handles three intents end to end:
 - **Returns/refunds** — checks eligibility (30-day return window) before ever asking for item/reason/refund method (both required), then enforces Bookly's return policy in code: explicit confirmation of the card on file before refunding to it, an explicit final "yes" from the customer logged to a separate audit trail before any return is created, and mandatory human review for every return regardless of amount — no refund is auto-approved. All sourced from the same Supabase `orders` table as order status
 - **General policy questions** — shipping, returns, payments, password reset, cancellation — answered via a `search_policies` tool instead of the model's own memory
 
-See `../PITCH_DECK.md` (or the shared slide deck) for the architecture rationale and key tradeoffs.
-
 ## Requirements
 
 - Node.js 20+ (built and tested on Node 22)
-- An Anthropic API key with access to `claude-opus-4-8`
+- An Anthropic API key with access to `claude-sonnet-5`
 - A Supabase project with an `orders` table (see below) — optional; without it, `lookup_order` returns a clear "not configured" error instead of crashing, and everything else in the demo still works
 
 ## Setup
@@ -82,7 +80,7 @@ client (React/Vite)  →  POST /api/chat  →  server (Express)
 ```
 
 - `server/lib/systemPrompt.js` — persona, scope, and guardrails (identity check before order actions, no fabricating order/policy details, explicit card confirmation before refunding, ask before assuming).
-- `server/lib/tools.js` — tool schemas + execution. Business rules (identity match, 30-day return window, $1,000 human-review threshold, card confirmation) are enforced in code, not left to the model.
+- `server/lib/tools.js` — tool schemas + execution. Business rules (identity match, 30-day return window, mandatory human review for every return, card confirmation) are enforced in code, not left to the model.
 - `server/lib/supabaseClient.js` — lazy Supabase client; throws a clear, catchable error if unconfigured rather than crashing the server at boot.
 - `server/lib/agent.js` — the tool-use loop: calls Claude, executes any requested tools, feeds results back, repeats until the model returns a final text answer (capped at 6 iterations).
 - `server/index.js` — Express app; keeps an in-memory conversation history per `sessionId` (mock only — resets on restart).
